@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>區塊鏈信息查詢提交系統</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <script type="text/javascript" src="./dist/nebulas.js"></script>
+    <script type="text/javascript" src="./dist/nebPay.js"></script>
+    <script type="text/javascript" src="./jquery-1.12.4.js"></script>
+    <script src="http://cdn.bootcss.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+
+    <div class="container">
+        <div class="row clearfix">
+            <div class="col-md-12 column">
+                <div style="text-align: center">
+                    <h1>區塊鏈信息查詢提交系統</h1>
+                </div>
+
+                <div class="container-fluid">
+                        <div class="row-fluid">
+                            <div class="span12">
+                                 <span class="label"></span>
+                                <div class="list-group">
+                                    <a class="list-group-item active">查詢信息</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                <div class="input-group col-md-3" style="margin-top:20p;margin-left:20px">
+                    <input type="text" class="form-control" placeholder="请输入想查询的信件" id=search_title />
+                    <span class="input-group-btn">
+                        <button class="btn btn-info btn-search" id=search>查詢</button>
+
+                    </span>
+                </div>
+
+            </div>
+            <div class="row clearfix">
+                <div class="col-md-12 column">
+                </div>
+            </div>
+
+            <div style="text-align: center">
+                <h1 id=title></h1>
+            </div>
+
+            <div id=content style="margin-left:20px"></div>
+
+            <div id=author style="text-align: right"></div>
+
+            <div class="container-fluid">
+                    <div class="row-fluid">
+                        <div class="span12">
+                             <span class="label"></span>
+                            <div class="list-group">
+                                <a class="list-group-item active">立即提交</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            <div class="input-group" style="margin-left:20px">
+                <span class="input-group-addon">標題欄</span>
+                <input type="text" class="form-control" placeholder="輸入您的標題" id=input_title>
+            </div>
+            <div class="input-group" style="margin-top:20px ;margin-left:20px">
+                <span class="input-group-addon">内容</span>
+                <input type="text" class="form-control" placeholder="输入您的内容" id=input_content>
+            </div>
+            <div  style="text-align: right;margin-top:20px ">
+                    <button class="btn btn-info" id=post>完成</button>
+            </div>
+           
+        </div>
+</body>
+
+<script>
+    "use strict";
+    var dappContactAddress = "n1Sn1xgNrMP1QZ6axSd7dUgkRAhZjshtjxC";
+    var nebulas = require("nebulas"), Account = Account, neb = new nebulas.Neb();
+    neb.setRequest(new nebulas.HttpRequest("https://mainnet.nebulas.io"))
+
+    var NebPay = require("nebpay");
+    var nebPay = new NebPay();
+    var serialNumber
+
+    $("#search").click(function () {
+        if (!$("#search_title").val()) {
+            alter('必須填寫想搜索的標題');
+            return;
+        }
+
+        $('#content').text("");
+        var from = dappContactAddress
+        var value = "0";
+        var nonce = "0"
+        var gas_price = "1000000"
+        var gas_limit = "2000000"
+        var callFunction = "get";
+        var callArgs = "[\"" + $("#search_title").val() + "\"]";
+        console.log(callArgs);
+        var contract = {
+            "function": callFunction,
+            "args": callArgs
+        }
+
+        neb.api.call(from, dappContactAddress, value, nonce, gas_price, gas_limit, contract).then(function (resp) {
+            var result = resp.result;
+            
+            if (result === 'null') {
+                $('#content').text("該標題未被發現，您可以使用改標題哦！");
+                $('#title').text("");
+                $('#author').text("");
+                return;
+            }
+            console.log(result);
+            result = JSON.parse(result);
+            $("#title").text(result.title);
+            $('#content').text("内容:  " + result.content);
+            $('#author').text("作者：" + result.author);
+
+        }).catch(function (err) {
+            console.log("error :" + err.message);
+
+        })
+
+    })
+
+    $('#post').click(function () {
+        if (!$("#input_title").val() || !$("#input_content").val()) {
+            alert('標題欄和内容不能是空');
+            return;
+        }
+        var to = dappContactAddress;
+        var value = "0";
+        var callFunction = "save";
+        var callArgs = "[\"" + $("#input_title").val() + "\",\"" + $("#input_content").val() + "\"]";
+        console.log(callArgs);
+
+        serialNumber = nebPay.call(to, value, callFunction, callArgs, {
+            listener: function (resp) {
+                console.log("thecallback is " + resp)
+            }
+        });
+
+    })
+
+</script>
+
+</html>
